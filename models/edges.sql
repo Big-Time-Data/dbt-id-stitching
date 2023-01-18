@@ -11,7 +11,7 @@
         edge_a_label,
         edge_b,
         edge_b_label,
-        {{ dbt_utils.current_timestamp() }} AS edge_timestamp
+        edge_timestamp
     FROM (
         {{ ' UNION '.join(sql_statements) }}
     ) AS s
@@ -22,31 +22,48 @@
 {% else %}
 
     WITH
-    cte_min_edge_1 AS (
+    cte_timestamp AS (
         SELECT
-            edge,
-            MIN(rudder_id) AS first_row_id
-        FROM (
-            SELECT
-                rudder_id,
-                LOWER(edge_a) AS edge
-            FROM {{ this }}
-            UNION
-            SELECT
-                rudder_id,
-                LOWER(edge_b) AS edge
-            FROM {{ this }}
-        ) AS c
-        GROUP BY edge
+            rudder_id,
+            MAX(edge_timestamp) AS edge_timestamp
+        FROM {{ this }}
+        GROUP BY rudder_id
+    ),
+
+    cte_min_edge_1 AS (
+        select 
+          t.*,
+          cte_timestamp.edge_timestamp
+        from (
+          SELECT
+              edge,
+              MIN(rudder_id) AS first_row_id
+          FROM (
+              SELECT
+                  rudder_id,
+                  LOWER(edge_a) AS edge
+              FROM {{ this }}
+              UNION
+              SELECT
+                  rudder_id,
+                  LOWER(edge_b) AS edge
+              FROM {{ this }}
+          ) AS c
+
+          GROUP BY edge
+        ) t
+        join cte_timestamp on cte_timestamp.rudder_id = t.rudder_id
     ),
 
     cte_min_edge_2 AS (
         SELECT
             edge,
-            MIN(rudder_id) AS first_row_id
+            MIN(rudder_id) AS first_row_id,
+            max(edge_timestamp) as edge_timestamp
         FROM (
             SELECT
                 LEAST(a.first_row_id, b.first_row_id) AS rudder_id,
+                LEAST(a.edge_timestamp, b.edge_timestamp) AS edge_timestamp,
                 LEAST(o.edge_a) AS edge
             FROM {{ this }} AS o
             LEFT OUTER JOIN cte_min_edge_1 AS a
@@ -56,6 +73,7 @@
             UNION
             SELECT
                 LEAST(a.first_row_id, b.first_row_id) AS rudder_id,
+                LEAST(a.edge_timestamp, b.edge_timestamp) AS edge_timestamp,
                 LOWER(o.edge_b) AS edge
             FROM {{ this }} AS o
             LEFT OUTER JOIN cte_min_edge_1 AS a
@@ -70,10 +88,12 @@
     cte_min_edge_3 AS (
         SELECT
             edge,
-            MIN(rudder_id) AS first_row_id
+            MIN(rudder_id) AS first_row_id,
+            max(edge_timestamp) as edge_timestamp
         FROM (
             SELECT
                 LEAST(a.first_row_id, b.first_row_id) AS rudder_id,
+                LEAST(a.edge_timestamp, b.edge_timestamp) AS edge_timestamp,
                 LOWER(o.edge_a) AS edge
             FROM {{ this }} AS o
             LEFT OUTER JOIN cte_min_edge_2 AS a
@@ -83,6 +103,7 @@
             UNION
             SELECT
                 LEAST(a.first_row_id, b.first_row_id) AS rudder_id,
+                LEAST(a.edge_timestamp, b.edge_timestamp) AS edge_timestamp,
                 LOWER(o.edge_b) AS edge
             FROM {{ this }} AS o
             LEFT OUTER JOIN cte_min_edge_2 AS a
@@ -97,7 +118,8 @@
     cte_new_id AS (
         SELECT
             o.original_rudder_id,
-            LEAST(a.first_row_id, b.first_row_id) AS new_rudder_id
+            LEAST(a.first_row_id, b.first_row_id) AS new_rudder_id,
+            LEAST(a.edge_timestamp, b.edge_timestamp) AS edge_timestamp
         FROM {{ this }} AS o
         LEFT OUTER JOIN cte_min_edge_3 AS a
             ON LOWER(o.edge_a) = a.edge
@@ -112,7 +134,7 @@
         e.edge_a_label,
         e.edge_b,
         e.edge_b_label,
-        {{ dbt_utils.current_timestamp() }} AS edge_timestamp
+        cte_new_id.edge_timestamp AS edge_timestamp
     FROM {{ this }} AS e
     INNER JOIN cte_new_id
         ON e.original_rudder_id = cte_new_id.original_rudder_id
