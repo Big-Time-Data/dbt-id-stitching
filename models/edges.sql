@@ -52,7 +52,7 @@
 
           GROUP BY edge
         ) t
-        join cte_timestamp on cte_timestamp.rudder_id = t.rudder_id
+        join cte_timestamp on cte_timestamp.rudder_id = t.first_row_id
     ),
 
     cte_min_edge_2 AS (
