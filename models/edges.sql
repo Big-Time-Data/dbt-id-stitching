@@ -12,7 +12,8 @@
         edge_b,
         edge_b_label,
         edge_timestamp,
-        edge_rank_id
+        edge_rank_id,
+        edge_rank_id as original_edge_rank_id
     FROM (
         {{ ' UNION '.join(sql_statements) }}
     ) AS s
@@ -145,7 +146,8 @@
         e.edge_b,
         e.edge_b_label,
         cte_new_id.edge_timestamp AS edge_timestamp,
-        cte_new_id.edge_rank_id AS edge_rank_id
+        cte_new_id.edge_rank_id AS edge_rank_id,
+        e.original_edge_rank_id
     FROM {{ this }} AS e
     INNER JOIN cte_new_id
         ON e.original_rudder_id = cte_new_id.original_rudder_id
