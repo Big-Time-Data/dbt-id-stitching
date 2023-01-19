@@ -5,8 +5,8 @@
     {% set sql_statements = dbt_utils.get_column_values(table=ref('queries'), column='sql_to_run') %}
 
     SELECT
-        ROW_NUMBER() OVER (ORDER BY edge_rank_id ASC) AS rudder_id,
-        ROW_NUMBER() OVER (ORDER BY edge_rank_id ASC) AS original_rudder_id,
+        ROW_NUMBER() OVER (ORDER BY edge_rank_id ASC, edge_a, edge_b) AS rudder_id,
+        ROW_NUMBER() OVER (ORDER BY edge_rank_id ASC, edge_a, edge_b) AS original_rudder_id,
         edge_a,
         edge_a_label,
         edge_b,
