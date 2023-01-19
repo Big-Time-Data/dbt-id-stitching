@@ -63,7 +63,7 @@
             edge,
             MIN(rudder_id) AS first_row_id,
             MIN(edge_timestamp) as edge_timestamp,
-            MIN(edge_timestamp) as edge_rank_id
+            MIN(edge_rank_id) as edge_rank_id
         FROM (
             SELECT
                 LEAST(a.first_row_id, b.first_row_id) AS rudder_id,
@@ -96,7 +96,7 @@
             edge,
             MIN(rudder_id) AS first_row_id,
             MIN(edge_timestamp) as edge_timestamp,
-            MIN(edge_timestamp) as edge_rank_id
+            MIN(edge_rank_id) as edge_rank_id
         FROM (
             SELECT
                 LEAST(a.first_row_id, b.first_row_id) AS rudder_id,
