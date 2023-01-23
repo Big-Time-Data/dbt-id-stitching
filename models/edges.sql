@@ -12,6 +12,7 @@
         edge_b,
         edge_b_label,
         edge_timestamp,
+        edge_timestamp as original_edge_timestamp,
         edge_rank_id,
         edge_rank_id as original_edge_rank_id
     FROM (
@@ -146,6 +147,7 @@
         e.edge_b,
         e.edge_b_label,
         cte_new_id.edge_timestamp AS edge_timestamp,
+        e.original_edge_timestamp,
         cte_new_id.edge_rank_id AS edge_rank_id,
         e.original_edge_rank_id
     FROM {{ this }} AS e
